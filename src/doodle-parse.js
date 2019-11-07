@@ -1,10 +1,3 @@
-/* eslint-disable brace-style */
-
-const axios = require('axios');
-const { discordWebhookUrl, doodles, expectedNames } = require('./config.js');
-
-const apiBase = 'https://doodle.com/api/v2.0';
-
 const PREF_TYPES = {
   YESNO: 'YESNO',
   YESNOIFNEEDBE: 'YESNOIFNEEDBE',
@@ -27,6 +20,7 @@ const EMOTES = {
   NO: ':no_entry:',
   MAYBE: ':warning:',
   UNANSWERED: ':bangbang:',
+  UNEXPECTED: ':question:',
 };
 
 const MAX_OPTIONS = 3;
@@ -47,7 +41,6 @@ const LIMITS = {
   FOOTER_TEXT: 2048,
   SUM_CHAR_IN_EMBED: 6000,
 };
-
 
 const formatDateRange = (start, end) => {
   const startDate = new Date(start);
@@ -77,7 +70,7 @@ const cleanName = name => name.replace(/[^A-Za-z\s]/g, '').trim();
  *
  * @param {Array} participants participants from api call
  */
-const normalizeParticipants = (participants) => {
+const normalizeParticipants = (participants, expectedNames) => {
   const normalized = participants.map((participant) => {
     const { name } = participant;
     // find an alias list with a matching participant name
@@ -85,7 +78,10 @@ const normalizeParticipants = (participants) => {
       return aliases.map(alias => alias.toLowerCase()).includes(cleanName(name).toLowerCase());
     });
     // map current participant to participant with normalized name
-    return { ...participant, name: aliasList[0] || name };
+    return {
+      ...participant,
+      name: aliasList && aliasList.length ? aliasList[0] : name,
+    };
   });
   // console.log('normalized participants', normalized)
   return normalized;
@@ -100,6 +96,21 @@ const checkExpectedParticipants = (participants, expected) => {
       aliases[0],
       aliases.reduce((acc, alias) => acc || cleanPartiNames.includes(alias.toLowerCase()), false),
     ];
+  });
+};
+
+/**
+ *
+ * @param {Array} participants normalized participant list
+ * @param {Array} expected array of alias arrays
+ */
+const checkUnexpectedParticipants = (participants, expected) => {
+  return participants.filter((participant) => {
+    // reduce alias arrays into a true false if any contains this participant
+    // return opposite of that to filter for unexpected names
+    return !expected.reduce((acc, aliases) => {
+      return acc || aliases.includes(participant.name);
+    }, false);
   });
 };
 
@@ -171,12 +182,12 @@ const generateNoField = (participants, options) => {
  *
  * @param {Doodle} doodle poll object from the doodle api
  */
-const doodleToEmbed = (doodle) => {
+module.exports.doodleToEmbed = (doodle, expectedNames) => {
   const {
     id, title, participants, participantsCount, preferencesType, options,
   } = doodle;
 
-  const normalizedParticipants = normalizeParticipants(participants);
+  const normalizedParticipants = normalizeParticipants(participants, expectedNames);
   const names = normalizedParticipants.map(parti => parti.name).sort();
 
   const fields = [];
@@ -214,6 +225,15 @@ const doodleToEmbed = (doodle) => {
     });
   }
 
+  const unexpectedNames = checkUnexpectedParticipants(normalizedParticipants, expectedNames);
+  const unexpected = unexpectedNames.map(parti => parti.name);
+  if (unexpectedNames.length) {
+    fields.push({
+      name: `${SHOW_EMOTES ? EMOTES.UNEXPECTED : ''} **Unexpected**`,
+      value: unexpected.join(', '),
+    });
+  }
+
   const ratioAnswered = (expectedStatuses.length - notAnswered.length) / expectedStatuses.length;
   let color = COLORS.GREEN;
   if (ratioAnswered < ANSWERED_THRESHOLDS.GOOD) {
@@ -231,21 +251,3 @@ const doodleToEmbed = (doodle) => {
     color,
   };
 };
-
-axios.all(doodles.map(([, pollId]) => axios.get(`${apiBase}/polls/${pollId}`)))
-  .then(responses => responses.map(resp => resp.data))
-  .then((responses) => {
-    console.log(responses.map(resp => `${resp.title} data retrieved`).join('\n'));
-    const today = new Date();
-    axios.post(discordWebhookUrl, {
-      content: `Daily Doodle Report ${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear() % 1000}`,
-      embeds: responses.map(doodleToEmbed),
-    })
-      .then((postresp) => {
-        console.log('discord post status', postresp.status);
-      })
-      .catch((error) => {
-        console.error(error.response);
-      });
-  })
-  .catch(console.error);

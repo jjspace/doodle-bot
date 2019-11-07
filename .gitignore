@@ -1,6 +1,6 @@
 
-# Created by https://www.gitignore.io/api/node
-# Edit at https://www.gitignore.io/?templates=node
+# Created by https://www.gitignore.io/api/code,node
+# Edit at https://www.gitignore.io/?templates=code,node
 
 ### Node ###
 # Logs
@@ -95,8 +95,17 @@ public/
 # DynamoDB Local files
 .dynamodb/
 
-# End of https://www.gitignore.io/api/node
+### Code ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extension
+
+# End of https://www.gitignore.io/api/code,node
 
 src/config.js
 local-resources/
 config.json
+src/db/botDbTest.json
+src/db/botDb.json
