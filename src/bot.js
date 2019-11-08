@@ -52,7 +52,7 @@ const checkAccess = (serverDb, member) => {
   // allow anyone with Admin or Manage Server permissions
   // regardless of role
   if (member.hasPermission(Permissions.FLAGS.ADMINISTRATOR)
-    || member.hasPermission(Permissions.FLAGS.MANAGE_SERVER)) {
+    || member.hasPermission(Permissions.FLAGS.MANAGE_GUILD)) {
     return true;
   }
 
@@ -90,7 +90,7 @@ client.on('message', (message) => {
   // Check for access to the bot
   const hasAccess = checkAccess(serverDb, member);
   if (!hasAccess) {
-    console.log(`Member ${member.displayName} does not have access`);
+    console.log(`Member "${member.displayName}" does not have access`);
     return;
   }
 
