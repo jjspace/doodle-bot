@@ -24,6 +24,10 @@ const client = new Discord.Client();
  */
 client.on('ready', () => {
   console.log('I am ready!');
+  if (process.send) {
+    // sent 'ready' for pm2
+    process.send('ready');
+  }
 });
 
 client.on('guildCreate', (guild) => {
@@ -38,8 +42,8 @@ client.on('guildCreate', (guild) => {
 
     const storedGuild = dbClient.getServer(db, id);
 
-    if (!storedGuild) {
-      dbClient.createServer(db, id, name);
+    if (!storedGuild.value()) {
+      dbClient.addServer(db, id, name);
     }
   }
 });
@@ -64,7 +68,7 @@ const checkAccess = (serverDb, member) => {
 client.on('message', (message) => {
   const { guild, member, content } = message;
 
-  console.log(`recieved message: ${message.content} from ${member.displayName}`);
+  console.log(`recieved message: "${message.content}" (${message.embeds.length} embeds) from ${member.displayName}`);
   if (message.author === client.user) {
     console.log('message from myself, no action');
     return;
@@ -76,11 +80,12 @@ client.on('message', (message) => {
 
   // Load server or generate default server
   const serverDb = dbClient.getServer(db, guild.id);
-  if (!serverDb) {
-    dbClient.createServer(db, guild.id, guild.name);
+  if (!serverDb.value()) {
+    dbClient.addServer(db, guild.id, guild.name);
     message.channel.send('Current Guild Settings not found, defaults generated\nIf you think this is wrong contact the bot developer');
     return;
   }
+  console.log(`Loaded serverDb for guild ${guild.id}`);
 
   // Check for access to the bot
   const hasAccess = checkAccess(serverDb, member);
@@ -113,7 +118,7 @@ client.on('message', (message) => {
             const names = dbClient
               .getExpectedNames(serverDb)
               .map(expectedName => expectedName.displayName);
-            message.channel.send(`**Members**: ${names.join(', ')}`);
+            message.channel.send(`**Members**: ${names.length ? names.join(', ') : 'No members'}`);
 
             break;
           }
@@ -129,7 +134,7 @@ client.on('message', (message) => {
               aliases: [newName],
             });
 
-            message.channel.send(`${newName} added to members`);
+            message.channel.send(`"${newName}" added to members`);
 
             break;
           }
@@ -153,7 +158,7 @@ client.on('message', (message) => {
               const aliasList = person.aliases.join(', ');
               return `**${person.displayName}:** ${aliasList}`;
             });
-            message.channel.send(`${list.join('\n')}`);
+            message.channel.send(`${list.length ? list.join('\n') : 'No Aliases to show'}`);
             break;
           }
           // alias add Name Alias - add "Alias" to list of "Name"'s aliases
@@ -169,10 +174,10 @@ client.on('message', (message) => {
             const expectedName = dbClient.getExpectedName(serverDb, displayName);
             if (expectedName) {
               dbClient.addExpectedNameAlias(serverDb, displayName, [newAlias]);
-              message.channel.send(`Alias ${newAlias} added to ${displayName}`);
+              message.channel.send(`Alias "${newAlias}" added to display name "${displayName}"`);
             }
             else {
-              message.channel.send(`Display Name ${displayName} not found`);
+              message.channel.send(`Display Name "${displayName}" not found`);
             }
 
             break;
@@ -188,10 +193,10 @@ client.on('message', (message) => {
             const expectedName = dbClient.getExpectedName(serverDb, displayName);
             if (expectedName) {
               dbClient.removeExpectedNameAlias(serverDb, displayName, aliasToRemove);
-              message.channel.send(`Alias ${aliasToRemove} removed from ${displayName}`);
+              message.channel.send(`Alias "${aliasToRemove}" removed from ${displayName}`);
             }
             else {
-              message.channel.send(`Display Name ${displayName} not found`);
+              message.channel.send(`Display Name "${displayName}" not found`);
             }
 
             break;
@@ -280,7 +285,7 @@ client.on('message', (message) => {
               .getDoodles(serverDb)
               .map(doodle => `${doodle.name} - ${doodle.id}`);
 
-            message.channel.send(doodles.join('\n'));
+            message.channel.send(doodles.length ? doodles.join('\n') : 'No Doodles being tracked');
 
             break;
           }
@@ -304,10 +309,10 @@ client.on('message', (message) => {
                     name: title,
                     deadline: deadline.toJSON(),
                   });
-                  message.channel.send(`Started tracking doodle ${title}`);
+                  message.channel.send(`Started tracking doodle "${title}"`);
                 } catch (error) {
                   if (error.message.includes('duplicate id')) {
-                    message.channel.send(`Doodle ${title} already being tracked`);
+                    message.channel.send(`Doodle "${title}" already being tracked`);
                     return;
                   }
                   console.log(error);
@@ -326,12 +331,12 @@ client.on('message', (message) => {
 
             const doodleToRemove = dbClient.getDoodle(serverDb, pollId);
             if (!doodleToRemove) {
-              message.channel.send(`No poll with id ${pollId} currently being tracked`);
+              message.channel.send(`No poll with id "${pollId}" currently being tracked`);
               break;
             }
             try {
               dbClient.removeDoodle(serverDb, pollId);
-              message.channel.send(`No longer tracking doodle ${doodleToRemove.name}`);
+              message.channel.send(`No longer tracking doodle "${doodleToRemove.name}"`);
             } catch (error) {
               console.log(error);
             }
@@ -352,7 +357,7 @@ client.on('message', (message) => {
             const today = new Date();
             doodleApi.getDoodles(doodleIds)
               .then((doodleDatas) => {
-                console.log(doodleDatas.map(resp => `${resp.title} data retrieved`).join('\n'));
+                console.log(doodleDatas.map(resp => `"${resp.title}" data retrieved`).join('\n'));
                 const embeds = doodleDatas.map(doodle => doodleParse.doodleToEmbed(doodle, expectedNames));
                 message.channel.send(
                   `Daily Doodle Report ${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear() % 1000}`,

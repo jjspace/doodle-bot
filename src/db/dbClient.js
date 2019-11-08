@@ -18,7 +18,7 @@ module.exports.addServer = (db, serverId, serverName) => {
     expectedNames: [],
     doodlesToWatch: [],
   };
-  db.get('servers').insert(newServer);
+  db.get('servers').insert(newServer).write();
 };
 
 module.exports.getCommandPrefix = (serverDb) => {
