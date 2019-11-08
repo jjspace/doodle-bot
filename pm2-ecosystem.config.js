@@ -1,6 +1,6 @@
 module.exports = {
   apps: [{
-    name: 'doodle-bot',
+    name: 'fiddle-bot',
     script: './src/bot.js',
 
     // Options reference: https://pm2.io/doc/en/runtime/reference/ecosystem-file/
@@ -11,7 +11,7 @@ module.exports = {
     listen_timeout: 10000,
     max_restarts: 10,
     max_memory_restart: '150M',
-    log_file: 'doodle-bot.log',
+    log_file: 'fiddle-bot.log',
     time: true,
     merge_logs: true,
     env: {
