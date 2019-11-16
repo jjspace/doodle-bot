@@ -12,7 +12,6 @@ module.exports = {
     max_restarts: 10,
     max_memory_restart: '150M',
     log_file: 'fiddle-bot.log',
-    time: true,
     merge_logs: true,
     env: {
       NODE_ENV: 'development',

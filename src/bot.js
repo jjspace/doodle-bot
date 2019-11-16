@@ -5,6 +5,7 @@
 // Import the discord.js module
 const Discord = require('discord.js');
 const config = require('./config');
+const logger = require('./logger');
 const db = require('./db/db').db();
 const dbClient = require('./db/dbClient');
 const doodleApi = require('./doodle-api');
@@ -23,7 +24,7 @@ const client = new Discord.Client();
  * received from Discord
  */
 client.on('ready', () => {
-  console.log('I am ready!');
+  logger.info(`I am ready! I am "${client.user.username}" connected to ${client.guilds.size} guilds`);
   if (process.send) {
     // sent 'ready' for pm2
     process.send('ready');
@@ -31,7 +32,7 @@ client.on('ready', () => {
 });
 
 client.on('guildCreate', (guild) => {
-  console.log('Invited to join new guild');
+  logger.info(`Invited to join new guild: ${guild.id}`);
   if (guild.available) {
     // It's recommended to see if a guild is available before
     // performing operations or reading data from it. You can
@@ -68,13 +69,13 @@ const checkAccess = (serverDb, member) => {
 client.on('message', (message) => {
   const { guild, member, content } = message;
 
-  console.log(`recieved message: "${message.content}" (${message.embeds.length} embeds) from ${member.displayName}`);
+  logger.info(`Received message: "${message.content}" (${message.embeds.length} embeds) from "${member.displayName || ''}:${member.id}"`);
   if (message.author === client.user) {
-    console.log('message from myself, no action');
+    logger.info('Message from myself, no action');
     return;
   }
   if (message.author.bot) {
-    console.log('message is another bot, ignore');
+    logger.info('Message from another bot, ignore');
     return;
   }
 
@@ -85,12 +86,12 @@ client.on('message', (message) => {
     message.channel.send('Current Guild Settings not found, defaults generated\nIf you think this is wrong contact the bot developer');
     return;
   }
-  console.log(`Loaded serverDb for guild ${guild.id}`);
+  logger.info(`Loaded serverDb for guild ${guild.id}`);
 
   // Check for access to the bot
   const hasAccess = checkAccess(serverDb, member);
   if (!hasAccess) {
-    console.log(`Member "${member.displayName}" does not have access`);
+    logger.info(`Member "${member.displayName || member.id}" does not have access`);
     return;
   }
 
@@ -315,7 +316,7 @@ client.on('message', (message) => {
                     message.channel.send(`Doodle "${title}" already being tracked`);
                     return;
                   }
-                  console.log(error);
+                  logger.error(error);
                 }
               });
 
@@ -338,7 +339,7 @@ client.on('message', (message) => {
               dbClient.removeDoodle(serverDb, pollId);
               message.channel.send(`No longer tracking doodle "${doodleToRemove.name}"`);
             } catch (error) {
-              console.log(error);
+              logger.error(error);
             }
 
             break;
@@ -354,15 +355,21 @@ client.on('message', (message) => {
               .getExpectedNames(serverDb)
               .map(name => name.aliases);
 
+            logger.info('=====Generating Report=====');
             const today = new Date();
             doodleApi.getDoodles(doodleIds)
               .then((doodleDatas) => {
-                console.log(doodleDatas.map(resp => `"${resp.title}" data retrieved`).join('\n'));
-                const embeds = doodleDatas.map(doodle => doodleParse.doodleToEmbed(doodle, expectedNames));
+                const embeds = doodleDatas.map((doodle) => {
+                  logger.info(`"${doodle.title}" data retrieved`);
+                  // TODO: add doodle data
+                  // logger.data({ doodle });
+                  return doodleParse.doodleToEmbed(doodle, expectedNames);
+                });
                 message.channel.send(
                   `Daily Doodle Report ${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear() % 1000}`,
                 );
                 embeds.forEach(embed => message.channel.send({ embed }));
+                logger.info('=====Report Sent=====');
               });
 
             break;
@@ -385,11 +392,11 @@ client.on('message', (message) => {
 client.login(discordBotToken);
 
 client.on('error', (error) => {
-  console.error(error);
+  logger.error(error);
 });
 
 process.on('SIGINT', () => {
-  console.log('Caught interrupt signal');
+  logger.info('Caught Interrupt Signal, quitting');
 
   client.destroy();
   process.exit();

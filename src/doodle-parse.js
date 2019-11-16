@@ -103,7 +103,6 @@ const normalizeParticipants = (participants, expectedNames) => {
       name: aliasList && aliasList.length ? aliasList[0] : name,
     };
   });
-  // console.log('normalized participants', normalized)
   return normalized;
 };
 
@@ -111,7 +110,6 @@ const normalizeParticipants = (participants, expectedNames) => {
 const checkExpectedParticipants = (participants, expected) => {
   return expected.map((aliases) => {
     const cleanPartiNames = participants.map(parti => parti.name.toLowerCase()).map(cleanName);
-    // console.log('clean names', cleanPartiNames);
     return [
       aliases[0],
       aliases.reduce((acc, alias) => acc || cleanPartiNames.includes(alias.toLowerCase()), false),

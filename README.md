@@ -2,7 +2,7 @@
 
 This is a bot/simple program to create reports to check who has completed specified [Doodle](https://doodle.com/) polls. I created it to check who still has yet to answer polls yet so we can enforce group policies.
 
-Currently it requires a `config.js` file exporting settings used by `main.js`. I'm not gonna outline the structure yet because it's likely to change soon as I work towards making this an actual bot not just something that posts to webhooks.
+Currently it requires a `config.js` file exporting settings used by the bot. I'm not gonna outline the structure yet because there's still potential for it to change moving forward.
 
 ## Notices
 
