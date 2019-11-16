@@ -42,7 +42,17 @@ const LIMITS = {
   SUM_CHAR_IN_EMBED: 6000,
 };
 
-const formatDateRange = (start, end) => {
+const formatDate = (date, timezone = 'UTC') => {
+  const dateObj = new Date(date);
+  const dateFormat = {
+    month: 'short',
+    day: 'numeric',
+    timeZone: timezone,
+  }
+  return dateObj.toLocaleDateString('us', dateFormat);
+};
+
+const formatDateRange = (start, end, timezone = 'UTC') => {
   const startDate = new Date(start);
   const endDate = new Date(end);
   const startFormat = {
@@ -50,12 +60,22 @@ const formatDateRange = (start, end) => {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
+    timeZone: timezone,
   };
   const endFormat = {
     hour: 'numeric',
     minute: '2-digit',
+    timeZone: timezone,
   };
   return `${startDate.toLocaleDateString('us', startFormat)} - ${endDate.toLocaleTimeString('us', endFormat)}`;
+};
+
+const formatOption = (option, participants, timezone) => {
+  const optionTitle = option.allday
+    ? formatDate(option.start, timezone)
+    : formatDateRange(option.start, option.end, timezone);
+
+  return `__${optionTitle}__ (${participants.length}): ${participants.join(', ')}\n`;
 };
 
 /**
@@ -114,7 +134,7 @@ const checkUnexpectedParticipants = (participants, expected) => {
   });
 };
 
-const generateYesField = (participants, options, preferencesType) => {
+const generateYesField = (participants, options, preferencesType, timezone) => {
   let output = '';
   options.forEach((option, i) => {
     const filteredParticipants = participants.filter((parti) => {
@@ -126,7 +146,7 @@ const generateYesField = (participants, options, preferencesType) => {
       }
       throw new Error(`Unknown preferencesType: ${preferencesType}`);
     }).map(parti => parti.name).sort();
-    output += `__${formatDateRange(option.start, option.end)}__ (${filteredParticipants.length}): ${filteredParticipants.join(', ')}\n`;
+    output += formatOption(option, filteredParticipants, timezone);
   });
   if (output.length > LIMITS.FIELD_VALUE || options.length > MAX_OPTIONS) {
     output = 'Too many options to display, see full poll for results';
@@ -136,7 +156,7 @@ const generateYesField = (participants, options, preferencesType) => {
     value: output,
   };
 };
-const generateMaybeField = (participants, options, preferencesType) => {
+const generateMaybeField = (participants, options, preferencesType, timezone) => {
   let output = '';
   options.forEach((option, i) => {
     const filteredParticipants = participants.filter((parti) => {
@@ -148,7 +168,7 @@ const generateMaybeField = (participants, options, preferencesType) => {
       }
       throw new Error(`Unknown preferencesType: ${preferencesType}`);
     }).map(parti => parti.name).sort();
-    output += `__${formatDateRange(option.start, option.end)}__ (${filteredParticipants.length}): ${filteredParticipants.join(', ')}\n`;
+    output += formatOption(option, filteredParticipants, timezone);
   });
   if (output.length > LIMITS.FIELD_VALUE || options.length > MAX_OPTIONS) {
     output = 'Too many options to display, see full poll for results';
@@ -158,14 +178,14 @@ const generateMaybeField = (participants, options, preferencesType) => {
     value: output,
   };
 };
-const generateNoField = (participants, options) => {
+const generateNoField = (participants, options, timezone) => {
   let output = '';
   options.forEach((option, i) => {
     const filteredParticipants = participants
       .filter(parti => parti.preferences[i] === 0)
       .map(parti => parti.name)
       .sort();
-    output += `__${formatDateRange(option.start, option.end)}__ (${filteredParticipants.length}): ${filteredParticipants.join(', ')}\n`;
+    output += formatOption(option, filteredParticipants, timezone);
   });
   if (output.length > LIMITS.FIELD_VALUE || options.length > MAX_OPTIONS) {
     output = 'Too many options to display, see full poll for results';
@@ -184,7 +204,13 @@ const generateNoField = (participants, options) => {
  */
 module.exports.doodleToEmbed = (doodle, expectedNames) => {
   const {
-    id, title, participants, participantsCount, preferencesType, options,
+    id,
+    title,
+    participants,
+    initiator,
+    participantsCount,
+    preferencesType,
+    options,
   } = doodle;
 
   const normalizedParticipants = normalizeParticipants(participants, expectedNames);
@@ -211,10 +237,20 @@ module.exports.doodleToEmbed = (doodle, expectedNames) => {
   }
   // Want to display options
   else {
-    fields.push(generateYesField(normalizedParticipants, options, preferencesType));
-    fields.push(generateNoField(normalizedParticipants, options));
-    fields.push(generateMaybeField(normalizedParticipants, options, preferencesType));
+    const { timeZone } = initiator;
+    fields.push(generateYesField(normalizedParticipants, options, preferencesType, timeZone));
+    fields.push(generateNoField(normalizedParticipants, options, timeZone));
+    fields.push(generateMaybeField(normalizedParticipants, options, preferencesType, timeZone));
   }
+
+  // TODO: Add a Duplicates field. There are times someone answers twice and the participant count
+  // is higher because of it but the number attending and whatnot are accurate. These people have
+  // answered but we need to follow up to see which answer is the "real" answer
+
+  // TODO: maybe change out things are shown for closed polls, not really waiting for responses
+  // so don't really need the expected/unexpected
+
+  // TODO: Add commands to toggle each field for a given server
 
   const expectedStatuses = checkExpectedParticipants(normalizedParticipants, expectedNames);
   const notAnswered = expectedStatuses.filter(status => !status[1]).map(status => status[0]);
@@ -242,6 +278,7 @@ module.exports.doodleToEmbed = (doodle, expectedNames) => {
   if (ratioAnswered < ANSWERED_THRESHOLDS.MEDIUM) {
     color = COLORS.RED;
   }
+  // TODO: add a gray option for when a doodle is closed or other times.
 
   return {
     title: `**${title}**`,
