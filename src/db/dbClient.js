@@ -1,9 +1,7 @@
 
 // client design inspired by: https://saltsthlm.github.io/protips/lowdb.html
 
-module.exports.getServer = (db, serverId) => {
-  return db.get('servers').getById(serverId);
-};
+module.exports.getServer = (db, serverId) => db.get('servers').getById(serverId);
 
 module.exports.addServer = (db, serverId, serverName) => {
   // TODO: Extract these defaults to config?
@@ -21,13 +19,9 @@ module.exports.addServer = (db, serverId, serverName) => {
   db.get('servers').insert(newServer).write();
 };
 
-module.exports.getCommandPrefix = (serverDb) => {
-  return serverDb.get('commandPrefix').value();
-};
+module.exports.getCommandPrefix = (serverDb) => serverDb.get('commandPrefix').value();
 
-module.exports.getAllowedRoles = (serverDb) => {
-  return serverDb.get('allowedRoles').value();
-};
+module.exports.getAllowedRoles = (serverDb) => serverDb.get('allowedRoles').value();
 
 module.exports.addAllowedRole = (serverDb, newRole) => {
   serverDb
@@ -43,18 +37,14 @@ module.exports.removeAllowedRole = (serverDb, roleId) => {
 };
 
 
-module.exports.getExpectedName = (serverDb, displayName) => {
-  return serverDb.get('expectedNames').find({ displayName }).value();
-};
-module.exports.getExpectedNames = (serverDb) => {
-  return serverDb.get('expectedNames').value();
-};
+module.exports.getExpectedName = (serverDb, displayName) => serverDb.get('expectedNames').find({ displayName }).value();
+module.exports.getExpectedNames = (serverDb) => serverDb.get('expectedNames').value();
 
 module.exports.addExpectedName = (serverDb, newName) => {
   serverDb.get('expectedNames')
     .insert(newName)
     .write();
-}
+};
 
 module.exports.addExpectedNameAlias = (serverDb, displayName, newAliases) => {
   let aliases = serverDb.get('expectedNames')
@@ -68,7 +58,6 @@ module.exports.addExpectedNameAlias = (serverDb, displayName, newAliases) => {
     .find({ displayName })
     .assign({ aliases })
     .write();
-
 };
 
 module.exports.removeExpectedNameAlias = (serverDb, displayName, oldAlias) => {
@@ -79,16 +68,12 @@ module.exports.removeExpectedNameAlias = (serverDb, displayName, oldAlias) => {
     .write();
 };
 
-module.exports.getDoodles = (serverDb) => {
-  return serverDb.get('doodlesToWatch').value();
-};
+module.exports.getDoodles = (serverDb) => serverDb.get('doodlesToWatch').value();
 
-module.exports.getDoodle = (serverDb, pollId) => {
-  return serverDb
-    .get('doodlesToWatch')
-    .getById(pollId)
-    .value();
-};
+module.exports.getDoodle = (serverDb, pollId) => serverDb
+  .get('doodlesToWatch')
+  .getById(pollId)
+  .value();
 
 module.exports.addDoodle = (serverDb, doodle) => {
   serverDb

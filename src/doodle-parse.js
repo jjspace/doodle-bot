@@ -48,7 +48,7 @@ const formatDate = (date, timezone = 'UTC') => {
     month: 'short',
     day: 'numeric',
     timeZone: timezone,
-  }
+  };
   return dateObj.toLocaleDateString('us', dateFormat);
 };
 
@@ -83,7 +83,7 @@ const formatOption = (option, participants, timezone) => {
  *
  * @param {String} name name to clean
  */
-const cleanName = name => name.replace(/[^A-Za-z\s]/g, '').trim();
+const cleanName = (name) => name.replace(/[^A-Za-z\s]/g, '').trim();
 
 /**
  * Replace participants names with normalized ones from expected aliases
@@ -94,9 +94,9 @@ const normalizeParticipants = (participants, expectedNames) => {
   const normalized = participants.map((participant) => {
     const { name } = participant;
     // find an alias list with a matching participant name
-    const aliasList = expectedNames.find((aliases) => {
-      return aliases.map(alias => alias.toLowerCase()).includes(cleanName(name).toLowerCase());
-    });
+    const aliasList = expectedNames.find((aliases) => aliases
+      .map((alias) => alias.toLowerCase())
+      .includes(cleanName(name).toLowerCase()));
     // map current participant to participant with normalized name
     return {
       ...participant,
@@ -109,7 +109,7 @@ const normalizeParticipants = (participants, expectedNames) => {
 // eslint-disable-next-line arrow-body-style
 const checkExpectedParticipants = (participants, expected) => {
   return expected.map((aliases) => {
-    const cleanPartiNames = participants.map(parti => parti.name.toLowerCase()).map(cleanName);
+    const cleanPartiNames = participants.map((parti) => parti.name.toLowerCase()).map(cleanName);
     return [
       aliases[0],
       aliases.reduce((acc, alias) => acc || cleanPartiNames.includes(alias.toLowerCase()), false),
@@ -122,11 +122,12 @@ const checkExpectedParticipants = (participants, expected) => {
  * @param {Array} participants normalized participant list
  * @param {Array} expected array of alias arrays
  */
+// eslint-disable-next-line arrow-body-style
 const checkUnexpectedParticipants = (participants, expected) => {
-  return participants.filter((participant) => {
+  return participants.filter((participant) => { // eslint-disable-line arrow-body-style
     // reduce alias arrays into a true false if any contains this participant
     // return opposite of that to filter for unexpected names
-    return !expected.reduce((acc, aliases) => {
+    return !expected.reduce((acc, aliases) => { // eslint-disable-line arrow-body-style
       return acc || aliases.includes(participant.name);
     }, false);
   });
@@ -143,7 +144,7 @@ const generateYesField = (participants, options, preferencesType, timezone) => {
         return parti.preferences[i] === 2;
       }
       throw new Error(`Unknown preferencesType: ${preferencesType}`);
-    }).map(parti => parti.name).sort();
+    }).map((parti) => parti.name).sort();
     output += formatOption(option, filteredParticipants, timezone);
   });
   if (output.length > LIMITS.FIELD_VALUE || options.length > MAX_OPTIONS) {
@@ -165,7 +166,7 @@ const generateMaybeField = (participants, options, preferencesType, timezone) =>
         return parti.preferences[i] === 1;
       }
       throw new Error(`Unknown preferencesType: ${preferencesType}`);
-    }).map(parti => parti.name).sort();
+    }).map((parti) => parti.name).sort();
     output += formatOption(option, filteredParticipants, timezone);
   });
   if (output.length > LIMITS.FIELD_VALUE || options.length > MAX_OPTIONS) {
@@ -180,8 +181,8 @@ const generateNoField = (participants, options, timezone) => {
   let output = '';
   options.forEach((option, i) => {
     const filteredParticipants = participants
-      .filter(parti => parti.preferences[i] === 0)
-      .map(parti => parti.name)
+      .filter((parti) => parti.preferences[i] === 0)
+      .map((parti) => parti.name)
       .sort();
     output += formatOption(option, filteredParticipants, timezone);
   });
@@ -212,7 +213,7 @@ module.exports.doodleToEmbed = (doodle, expectedNames) => {
   } = doodle;
 
   const normalizedParticipants = normalizeParticipants(participants, expectedNames);
-  const names = normalizedParticipants.map(parti => parti.name).sort();
+  const names = normalizedParticipants.map((parti) => parti.name).sort();
 
   const fields = [];
   // Don't want to display options
@@ -251,7 +252,7 @@ module.exports.doodleToEmbed = (doodle, expectedNames) => {
   // TODO: Add commands to toggle each field for a given server
 
   const expectedStatuses = checkExpectedParticipants(normalizedParticipants, expectedNames);
-  const notAnswered = expectedStatuses.filter(status => !status[1]).map(status => status[0]);
+  const notAnswered = expectedStatuses.filter((status) => !status[1]).map((status) => status[0]);
   if (notAnswered.length) {
     fields.push({
       name: `${SHOW_EMOTES ? EMOTES.UNANSWERED : ''} **Unanswered**`,
@@ -260,7 +261,7 @@ module.exports.doodleToEmbed = (doodle, expectedNames) => {
   }
 
   const unexpectedNames = checkUnexpectedParticipants(normalizedParticipants, expectedNames);
-  const unexpected = unexpectedNames.map(parti => parti.name);
+  const unexpected = unexpectedNames.map((parti) => parti.name);
   if (unexpectedNames.length) {
     fields.push({
       name: `${SHOW_EMOTES ? EMOTES.UNEXPECTED : ''} **Unexpected**`,

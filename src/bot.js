@@ -118,7 +118,7 @@ client.on('message', (message) => {
           case 'list': {
             const names = dbClient
               .getExpectedNames(serverDb)
-              .map(expectedName => expectedName.displayName);
+              .map((expectedName) => expectedName.displayName);
             message.channel.send(`**Members**: ${names.length ? names.join(', ') : 'No members'}`);
 
             break;
@@ -284,7 +284,7 @@ client.on('message', (message) => {
           case 'list': {
             const doodles = dbClient
               .getDoodles(serverDb)
-              .map(doodle => `${doodle.name} - ${doodle.id}`);
+              .map((doodle) => `${doodle.name} - ${doodle.id}`);
 
             message.channel.send(doodles.length ? doodles.join('\n') : 'No Doodles being tracked');
 
@@ -311,7 +311,8 @@ client.on('message', (message) => {
                     deadline: deadline.toJSON(),
                   });
                   message.channel.send(`Started tracking doodle "${title}"`);
-                } catch (error) {
+                }
+                catch (error) {
                   if (error.message.includes('duplicate id')) {
                     message.channel.send(`Doodle "${title}" already being tracked`);
                     return;
@@ -338,7 +339,8 @@ client.on('message', (message) => {
             try {
               dbClient.removeDoodle(serverDb, pollId);
               message.channel.send(`No longer tracking doodle "${doodleToRemove.name}"`);
-            } catch (error) {
+            }
+            catch (error) {
               logger.error(error);
             }
 
@@ -349,11 +351,11 @@ client.on('message', (message) => {
               ? [...args]
               : dbClient
                 .getDoodles(serverDb)
-                .map(doodle => doodle.id);
+                .map((doodle) => doodle.id);
 
             const expectedNames = dbClient
               .getExpectedNames(serverDb)
-              .map(name => name.aliases);
+              .map((name) => name.aliases);
 
             logger.info('=====Generating Report=====');
             const today = new Date();
@@ -368,7 +370,7 @@ client.on('message', (message) => {
                 message.channel.send(
                   `Daily Doodle Report ${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear() % 1000}`,
                 );
-                embeds.forEach(embed => message.channel.send({ embed }));
+                embeds.forEach((embed) => message.channel.send({ embed }));
                 logger.info('=====Report Sent=====');
               });
 

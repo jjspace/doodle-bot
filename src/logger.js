@@ -26,7 +26,9 @@ const logger = createLogger({
 });
 
 // mimic format.simple but add timestamp to the front
-const timestampSimple = format.printf(({ timestamp, level, message, ...rest }) => {
+const timestampSimple = format.printf(({
+  timestamp, level, message, ...rest
+}) => {
   const stringifiedRest = JSON.stringify(rest);
   if (stringifiedRest !== '{}') {
     return `${timestamp} ${level}: ${message} ${stringifiedRest}`;
