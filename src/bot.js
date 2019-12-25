@@ -4,8 +4,6 @@ const config = require('./config');
 const logger = require('./logger');
 const db = require('./db/db').db();
 const dbClient = require('./db/dbClient');
-const doodleApi = require('./doodle-api');
-const doodleParse = require('./doodle-parse');
 
 const { Permissions } = Discord;
 
@@ -111,7 +109,10 @@ client.on('message', (message) => {
     const args = content.slice(commandPrefix.length).split(/\s+/); // first word minus marker
     const commandName = args.shift().toLowerCase();
 
-    if (!client.commands.has(commandName)) return;
+    if (!client.commands.has(commandName)) {
+      message.channel.send(`Unrecognized command. Use ${commandPrefix}help to see available commands`);
+      return;
+    }
     const command = client.commands.get(commandName);
 
     // if (command.args && !args.length) {
@@ -127,121 +128,6 @@ client.on('message', (message) => {
     catch (error) {
       logger.error(error);
       message.reply('There was an error trying to execute that command!');
-    }
-
-    switch (commandName) {
-      case 'doodles': {
-        let secondaryCmd = args.shift();
-
-        // Default alias command is list
-        if (!secondaryCmd) secondaryCmd = 'list';
-
-        switch (secondaryCmd) {
-          case 'list': {
-            const doodles = dbClient
-              .getDoodles(serverDb)
-              .map((doodle) => `${doodle.name} - ${doodle.id}`);
-
-            message.channel.send(doodles.length ? doodles.join('\n') : 'No Doodles being tracked');
-
-            break;
-          }
-          case 'add': {
-            if (args.length > 1) {
-              message.channel.send('Too many arguments provided');
-              break;
-            }
-            const doodleId = args.shift();
-            // get doodle info
-            doodleApi.getDoodle(doodleId)
-              .then((doodleData) => {
-                const { title } = doodleData;
-
-                const deadline = new Date();
-                deadline.setDate(deadline.getDate() + 7);
-
-                try {
-                  dbClient.addDoodle(serverDb, {
-                    id: doodleId,
-                    name: title,
-                    deadline: deadline.toJSON(),
-                  });
-                  message.channel.send(`Started tracking doodle "${title}"`);
-                }
-                catch (error) {
-                  if (error.message.includes('duplicate id')) {
-                    message.channel.send(`Doodle "${title}" already being tracked`);
-                    return;
-                  }
-                  logger.error(error);
-                }
-              });
-
-            break;
-          }
-          case 'remove': {
-            if (args.length > 1) {
-              message.channel.send('Too many arguments provided');
-              break;
-            }
-            const pollId = args.shift();
-            // get doodle info
-
-            const doodleToRemove = dbClient.getDoodle(serverDb, pollId);
-            if (!doodleToRemove) {
-              message.channel.send(`No poll with id "${pollId}" currently being tracked`);
-              break;
-            }
-            try {
-              dbClient.removeDoodle(serverDb, pollId);
-              message.channel.send(`No longer tracking doodle "${doodleToRemove.name}"`);
-            }
-            catch (error) {
-              logger.error(error);
-            }
-
-            break;
-          }
-          case 'report': {
-            const doodleIds = args.length > 0
-              ? [...args]
-              : dbClient
-                .getDoodles(serverDb)
-                .map((doodle) => doodle.id);
-
-            const expectedNames = dbClient
-              .getExpectedNames(serverDb)
-              .map((name) => name.aliases);
-
-            logger.info('=====Generating Report=====');
-            const today = new Date();
-            doodleApi.getDoodles(doodleIds)
-              .then((doodleDatas) => {
-                const embeds = doodleDatas.map((doodle) => {
-                  logger.info(`"${doodle.title}" data retrieved`);
-                  // TODO: add doodle data
-                  // logger.data({ doodle });
-                  return doodleParse.doodleToEmbed(doodle, expectedNames);
-                });
-                message.channel.send(
-                  `Daily Doodle Report ${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear() % 1000}`,
-                );
-                embeds.forEach((embed) => message.channel.send({ embed }));
-                logger.info('=====Report Sent=====');
-              });
-
-            break;
-          }
-          default:
-            break;
-        }
-
-        break;
-      }
-      default: {
-        message.channel.send(`Unrecognized command. Use ${commandPrefix}help to see available commands`);
-        break;
-      }
     }
   }
 });
