@@ -45,6 +45,11 @@ module.exports.addExpectedName = (serverDb, newName) => {
     .insert(newName)
     .write();
 };
+module.exports.removeExpectedName = (serverDb, displayName) => {
+  serverDb.get('expectedNames')
+    .remove({ displayName })
+    .write();
+};
 
 module.exports.addExpectedNameAlias = (serverDb, displayName, newAliases) => {
   let aliases = serverDb.get('expectedNames')
