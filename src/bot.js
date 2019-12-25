@@ -1,9 +1,5 @@
-/**
- * A ping pong bot, whenever you send "ping", it replies "pong".
- */
-
-// Import the discord.js module
 const Discord = require('discord.js');
+const commands = require('./commands');
 const config = require('./config');
 const logger = require('./logger');
 const db = require('./db/db').db();
@@ -17,13 +13,14 @@ const { discordBotToken } = config;
 
 // Create an instance of a Discord client
 const client = new Discord.Client();
+client.commands = commands;
 
 /**
  * The ready event is vital, it means that only _after_
  * this will your bot start reacting to information
  * received from Discord
  */
-client.on('ready', () => {
+client.once('ready', () => {
   logger.info(`I am ready! I am "${client.user.username}" connected to ${client.guilds.size} guilds`);
   if (process.send) {
     // sent 'ready' for pm2
@@ -67,15 +64,26 @@ const checkAccess = (serverDb, member) => {
 // Create an event listener for messages
 // client.on('message', (user, userID, channelID, message, evt) => {
 client.on('message', (message) => {
-  const { guild, member, content } = message;
+  const {
+    guild,
+    author,
+    member,
+    content,
+  } = message;
 
-  logger.info(`Received message: "${message.content}" (${message.embeds.length} embeds) from "${member.displayName || ''}:${member.id}"`);
+  logger.info(`Received message: "${message.content}" (${message.embeds.length} embeds) from "${author.username || ''}:${author.id}"`);
   if (message.author === client.user) {
     logger.info('Message from myself, no action');
     return;
   }
   if (message.author.bot) {
     logger.info('Message from another bot, ignore');
+    return;
+  }
+  if (message.guild === null) {
+    // dm not a guild
+    logger.info('Message was a DM, alert and ignore');
+    message.channel.send('This bot does not currently accept DMs');
     return;
   }
 
@@ -95,56 +103,33 @@ client.on('message', (message) => {
     return;
   }
 
-  const commandMarker = dbClient.getCommandPrefix(serverDb);
+  const commandPrefix = dbClient.getCommandPrefix(serverDb);
 
   // Our bot needs to know if it will execute a command
   // It will listen for messages that will start with commandMarker
-  if (content.substring(0, 1) === commandMarker) {
-    const args = content.substring(1).split(' '); // first word minus marker
-    const cmd = args.shift().toLowerCase();
+  if (content.startsWith(commandPrefix)) {
+    const args = content.slice(commandPrefix.length).split(/\s+/); // first word minus marker
+    const commandName = args.shift().toLowerCase();
 
-    switch (cmd) {
-      case 'ping': {
-        message.channel.send('Pong!');
-        break;
-      }
-      case 'members': {
-        let secondaryCmd = args.shift();
+    if (!client.commands.has(commandName)) return;
+    const command = client.commands.get(commandName);
 
-        // Default alias command is list
-        if (!secondaryCmd) secondaryCmd = 'list';
+    // if (command.args && !args.length) {
+    //   message.channel.send(`You didn't provide any arguments, ${message.author}!`);
+    //   return;
+    // }
 
-        switch (secondaryCmd) {
-          case 'list': {
-            const names = dbClient
-              .getExpectedNames(serverDb)
-              .map((expectedName) => expectedName.displayName);
-            message.channel.send(`**Members**: ${names.length ? names.join(', ') : 'No members'}`);
+    try {
+      command.serverDb = serverDb;
+      command.execute(message, args);
+      return;
+    }
+    catch (error) {
+      logger.error(error);
+      message.reply('There was an error trying to execute that command!');
+    }
 
-            break;
-          }
-          case 'add': {
-            if (args.length !== 1) {
-              message.channel.send('Incorrect number of arguments, need one');
-              break;
-            }
-            const newName = args.shift();
-
-            dbClient.addExpectedName(serverDb, {
-              displayName: newName,
-              aliases: [newName],
-            });
-
-            message.channel.send(`"${newName}" added to members`);
-
-            break;
-          }
-          default:
-            break;
-        }
-
-        break;
-      }
+    switch (commandName) {
       case 'aliases': {
         let secondaryCmd = args.shift();
 
@@ -202,73 +187,6 @@ client.on('message', (message) => {
 
             break;
           }
-          default:
-            break;
-        }
-        break;
-      }
-      case 'mods': {
-        let secondaryCmd = args.shift();
-
-        if (!secondaryCmd) secondaryCmd = 'list';
-
-        switch (secondaryCmd) {
-          case 'list': {
-            const allowedRoles = dbClient.getAllowedRoles(serverDb);
-
-            const roles = allowedRoles.map(roleId => guild.roles.get(roleId));
-            message.channel.send(`Current Allowed Roles:\n${roles.length ? roles.join('\n') : 'No Roles Specified'}`);
-
-            break;
-          }
-          case 'add': {
-            // add role to moderators
-            const mentionedRoles = message.mentions.roles;
-            if (mentionedRoles.size !== 1) {
-              message.channel.send('Must mention one and only one role to add');
-              break;
-            }
-
-            const mentionedRole = mentionedRoles.first();
-            const roleId = mentionedRole.id;
-            const mention = mentionedRole.toString();
-
-            // if allowedRoles is empty and you do not have the role
-            // you tried to add, don't allow it
-
-            const currAllowedRoles = dbClient.getAllowedRoles(serverDb);
-            if (currAllowedRoles.includes(roleId)) {
-              message.channel.send(`${mention} already allowed`);
-              break;
-            }
-
-            dbClient.addAllowedRole(serverDb, roleId);
-            message.channel.send(`Added role ${mention}`);
-            break;
-          }
-          case 'remove': {
-            const mentionedRoles = message.mentions.roles;
-            if (mentionedRoles.size !== 1) {
-              message.channel.send('Must mention one and only one role to remove');
-              break;
-            }
-
-            const mentionedRole = mentionedRoles.first();
-            const roleId = mentionedRole.id;
-            const mention = mentionedRole.toString();
-
-            const currAllowedRoles = dbClient.getAllowedRoles(serverDb);
-            if (!currAllowedRoles.includes(roleId)) {
-              message.channel.send(`${mention} not in list`);
-              break;
-            }
-
-            dbClient.removeAllowedRole(serverDb, roleId);
-            message.channel.send(`Removed role ${mention}`);
-
-            break;
-          }
-
           default:
             break;
         }
@@ -383,7 +301,7 @@ client.on('message', (message) => {
         break;
       }
       default: {
-        message.channel.send(`Unrecognized command. Use ${commandMarker}help to see available commands`);
+        message.channel.send(`Unrecognized command. Use ${commandPrefix}help to see available commands`);
         break;
       }
     }
