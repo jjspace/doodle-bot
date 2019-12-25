@@ -8,6 +8,9 @@ const delmember = require('./members/delmember');
 const mods = require('./mods/mods');
 const addmod = require('./mods/addmod');
 const delmod = require('./mods/delmod');
+const aliases = require('./aliases/aliases');
+const addalias = require('./aliases/addalias');
+const delalias = require('./aliases/delalias');
 
 const commands = new Discord.Collection();
 
@@ -18,6 +21,9 @@ commands.set(delmember.name, delmember);
 commands.set(mods.name, mods);
 commands.set(addmod.name, addmod);
 commands.set(delmod.name, delmod);
+commands.set(aliases.name, aliases);
+commands.set(addalias.name, addalias);
+commands.set(delalias.name, delalias);
 
 // Generate help command from command definitions
 const help = helpGen(commands);

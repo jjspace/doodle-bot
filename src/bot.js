@@ -130,68 +130,6 @@ client.on('message', (message) => {
     }
 
     switch (commandName) {
-      case 'aliases': {
-        let secondaryCmd = args.shift();
-
-        // Default alias command is list
-        if (!secondaryCmd) secondaryCmd = 'list';
-
-        switch (secondaryCmd) {
-          // alias list - show list of all aliases "Display Name": [aliases]
-          case 'list': {
-            const expectedNames = dbClient.getExpectedNames(serverDb);
-            const list = expectedNames.map((person) => {
-              const aliasList = person.aliases.join(', ');
-              return `**${person.displayName}:** ${aliasList}`;
-            });
-            message.channel.send(`${list.length ? list.join('\n') : 'No Aliases to show'}`);
-            break;
-          }
-          // alias add Name Alias - add "Alias" to list of "Name"'s aliases
-          case 'add': {
-            if (args.length < 2) {
-              message.channel.send('Not enough arguments, need at least 2');
-              break;
-            }
-            const displayName = args.shift();
-            // TODO: try and turn this into allowing multiple with quotes around ones with spaces
-            const newAlias = args.join(' ');
-
-            const expectedName = dbClient.getExpectedName(serverDb, displayName);
-            if (expectedName) {
-              dbClient.addExpectedNameAlias(serverDb, displayName, [newAlias]);
-              message.channel.send(`Alias "${newAlias}" added to display name "${displayName}"`);
-            }
-            else {
-              message.channel.send(`Display Name "${displayName}" not found`);
-            }
-
-            break;
-          }
-          case 'remove': {
-            if (args.length !== 2) {
-              message.channel.send('Wrong number of arguments, need 2');
-              break;
-            }
-
-            const displayName = args.shift();
-            const aliasToRemove = args.shift();
-            const expectedName = dbClient.getExpectedName(serverDb, displayName);
-            if (expectedName) {
-              dbClient.removeExpectedNameAlias(serverDb, displayName, aliasToRemove);
-              message.channel.send(`Alias "${aliasToRemove}" removed from ${displayName}`);
-            }
-            else {
-              message.channel.send(`Display Name "${displayName}" not found`);
-            }
-
-            break;
-          }
-          default:
-            break;
-        }
-        break;
-      }
       case 'doodles': {
         let secondaryCmd = args.shift();
 
