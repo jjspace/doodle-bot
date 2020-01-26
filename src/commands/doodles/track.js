@@ -5,7 +5,7 @@ const logger = require('../../logger');
 module.exports = {
   name: 'track',
   description: 'Start tracking the provided Doodle Poll',
-  usage: 'track [poll id]',
+  usage: 'track [poll id | doodle link]',
   execute(message, args) {
     if (!this.serverDb) {
       throw new Error('Missing ServerDb');
@@ -14,7 +14,17 @@ module.exports = {
       message.channel.send('Too many arguments provided');
       return;
     }
-    const doodleId = args.shift();
+    if (!args.length) {
+      message.channel.send('Must provide doodleId');
+      return;
+    }
+
+    const doodleId = doodleApi.extractId(args.shift());
+    if (!doodleId) {
+      message.channel.send('Unknown id, please try again');
+      return;
+    }
+
     // get doodle info
     doodleApi.getDoodle(doodleId)
       .then((doodleData) => {
@@ -38,6 +48,9 @@ module.exports = {
           }
           logger.error(error);
         }
+      })
+      .catch(() => {
+        message.channel.send(`Doodle id "${doodleId}" not found. Please check you copied it correctly.`);
       });
   },
 };

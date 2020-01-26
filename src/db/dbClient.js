@@ -93,3 +93,4 @@ module.exports.removeDoodle = (serverDb, pollId) => {
     .remove({ id: pollId })
     .write();
 };
+module.exports.removeDoodleByIndex = (serverDb, index) => serverDb.get('doodlesToWatch').splice(index, 1).write();
