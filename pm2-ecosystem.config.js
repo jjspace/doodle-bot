@@ -11,7 +11,7 @@ module.exports = {
     listen_timeout: 10000,
     max_restarts: 10,
     max_memory_restart: '150M',
-    log_file: 'fiddle-bot.log',
+    log_file: 'fiddle-bot-pm2.log',
     merge_logs: true,
     env: {
       NODE_ENV: 'development',
