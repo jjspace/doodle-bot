@@ -12,7 +12,7 @@ module.exports.extractId = (idStr) => {
 
 module.exports.getDoodle = async (pollId) => axios
   .get(`${apiBase}/polls/${pollId}`)
-  .then(this.extractData)
+  .then((response) => response.data)
   .catch((error) => {
     logger.error('doodle-api getDoodle: ', error);
     throw error;
