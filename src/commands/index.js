@@ -15,6 +15,7 @@ const doodles = require('./doodles/doodles');
 const track = require('./doodles/track');
 const untrack = require('./doodles/untrack');
 const report = require('./doodles/report');
+const purge = require('./doodles/purge');
 
 const commands = new Discord.Collection();
 
@@ -32,6 +33,7 @@ commands.set(doodles.name, doodles);
 commands.set(track.name, track);
 commands.set(untrack.name, untrack);
 commands.set(report.name, report);
+commands.set(purge.name, purge);
 
 // Generate help command from command definitions
 const help = helpGen(commands);

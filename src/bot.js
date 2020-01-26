@@ -1,9 +1,19 @@
+const semver = require('semver');
 const Discord = require('discord.js');
 const commands = require('./commands');
 const config = require('./config');
 const logger = require('./logger');
 const db = require('./db/db').db();
 const dbClient = require('./db/dbClient');
+const { engines } = require('../package.json');
+
+// check we're using the correct node version
+// known required features: Promise.allSettled
+const version = engines.node;
+if (!semver.satisfies(process.version, version)) {
+  logger.error(`Required node version ${version} not satisfied with current version ${process.version}.`);
+  process.exit(1);
+}
 
 const { Permissions } = Discord;
 
