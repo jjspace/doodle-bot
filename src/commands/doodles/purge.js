@@ -41,6 +41,21 @@ module.exports = {
                 logger.error(error);
               }
             }
+            else if (response.status === 404) {
+              // poll id never existed, bad id
+              logger.info(`Doodle (${doodleId}) doesn't/never exist(ed), removing from DB. ${dryRun ? 'Dry run, no action' : ''}`);
+              try {
+                if (!dryRun) dbClient.removeDoodle(this.serverDb, doodleId);
+                doodlesRemoved += 1;
+              }
+              catch (error) {
+                logger.error(error);
+              }
+            }
+            else {
+              logger.error(`Doodle (${doodleId}) failed with status ${response.status}. Unknown failure, no action`);
+            }
+            return;
           }
           if (removeClosed) {
             const { id: doodleId, state } = doodle.value.data;
@@ -58,7 +73,8 @@ module.exports = {
         });
         message.channel.send(`${doodlesRemoved} doodles have been untracked. ${dryRun ? '(Dry run, no action taken)' : ''}`);
       })
-      .catch(() => {
+      .catch((error) => {
+        logger.error('purge error', error);
         message.channel.send('There was a problem purging the tracked doodles. Please try again later or contact the developer');
       });
   },

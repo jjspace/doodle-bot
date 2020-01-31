@@ -2,11 +2,17 @@ const PREF_TYPES = {
   YESNO: 'YESNO',
   YESNOIFNEEDBE: 'YESNOIFNEEDBE',
 };
+// TODO: Move these enums somewhere accessible by other files like purge.js
+const STATES = {
+  OPEN: 'OPEN',
+  CLOSED: 'CLOSED',
+};
 
 const COLORS = {
   GREEN: 0x43B581,
   YELLOW: 0xFAA61A,
   RED: 0xF04747,
+  GRAY: 0x848484,
 };
 const ANSWERED_THRESHOLDS = {
   GOOD: 0.9,
@@ -205,12 +211,15 @@ module.exports.doodleToEmbed = (doodle, expectedNames) => {
   const {
     id,
     title,
+    state,
     participants,
     initiator,
     participantsCount,
     preferencesType,
     options,
   } = doodle;
+
+  const pollClosed = state === STATES.CLOSED;
 
   const normalizedParticipants = normalizeParticipants(participants, expectedNames);
   const names = normalizedParticipants.map((parti) => parti.name).sort();
@@ -277,10 +286,14 @@ module.exports.doodleToEmbed = (doodle, expectedNames) => {
   if (ratioAnswered < ANSWERED_THRESHOLDS.MEDIUM) {
     color = COLORS.RED;
   }
+  if (pollClosed) {
+    color = COLORS.GRAY;
+  }
   // TODO: add a gray option for when a doodle is closed or other times.
+  // when the poll is closed change the color scale to "percentage yes/maybe for final option"?
 
   return {
-    title: `**${title}**`,
+    title: `**${title}** ${pollClosed ? '(Closed)' : ''}`,
     url: `https://doodle.com/poll/${id}`,
     description: `${participantsCount} participants`,
     fields,

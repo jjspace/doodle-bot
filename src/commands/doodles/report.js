@@ -32,7 +32,15 @@ module.exports = {
             const doodleId = doodleApi.extractId(request.path);
             let desc = 'Problem retrieving this doodle\'s data';
             if (response.status === 410) {
+              logger.info(`Doodle (${doodleId}) was deleted, informing user to untrack`);
               desc = 'This poll has been deleted, please untrack it';
+            }
+            else if (response.status === 404) {
+              logger.info(`Doodle (${doodleId}) doesn't/never exist(ed), notifying user of issue`);
+              desc = 'Problem retrieving this doodle\'s data. It seems like a doodle with this id never existed';
+            }
+            else {
+              logger.error(`Doodle (${doodleId}) failed with status ${response.status}. Unknown failure, no action`);
             }
             return {
               title: `**Doodle ${i + 1}** (${doodleId})`,
